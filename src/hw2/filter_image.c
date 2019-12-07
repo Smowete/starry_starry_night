@@ -5,6 +5,9 @@
 #include <assert.h>
 #include "image.h"
 
+#include <time.h>
+#include <stdlib.h>
+
 #define TWOPI 6.2831853
 
 
@@ -167,29 +170,6 @@ image sub_image(image a, image b) {
     return ret;
 }
 
-image mix_image(image base, image brush) {
-    int cx = brush.w / 2;
-    int cy = brush.h / 2;
-
-    image ret = make_image(base.w, base.h, base.c);
-
-    for (int c = 0; c < base.c; c++) {
-        for (int y = 0; y < base.h; y++) {
-            for (int x = 0; x < base.w; x++) {
-                if (x > brush.w || y > brush.h) {
-                    set_pixel(ret, x, y, c, get_pixel(base, x, y, c));
-                    continue;
-                }
-                float opacity = get_pixel(brush, x, y, 0);
-                set_pixel(ret, x, y, c, get_pixel(base, x, y, c) * (1 - opacity) + get_pixel(base, cx, cy, c) * opacity);
-            }
-        }
-    }
-    return ret;
-
-}
-
-
 image make_gx_filter() {
     image ret = make_image(3, 3, 1);
     set_pixel(ret, 0, 0, 0, -1.0);
@@ -279,4 +259,128 @@ image colorize_sobel(image im) {
     }
     hsv_to_rgb(ret);
     return ret;
+}
+
+
+
+
+
+
+
+
+
+
+image apply_brushes(image base) {
+    int num = 10000;
+    int max_brushes = 8;
+    srand(time(NULL));
+    float factor = 1.0 * 4000 / base.w;
+    if (base.h > base.w) {
+        factor = 1.0 * 4000 / base.h;
+    }
+    printf("Brush Resize Factor: %f\n", factor);
+
+    image temp = make_image(base.w, base.h, base.c);
+    image ret = add_image(temp, base);
+    free_image(temp);
+    
+    printf("Progress: %d / %d\n", 0, num);
+    for (int i = 0; i < num; i++) {
+        int brush_index = rand() % max_brushes;
+        char str0[50] = "brushes/";
+        char str1[10];
+        snprintf(str1, 10, "%d", brush_index);
+        char* str2 = strcat(str0, str1);
+
+        image brush = load_image(strcat(str2, ".png"));
+        image brush_resize = bilinear_resize(brush, floor(1.0 * brush.w / factor), floor(1.0 * brush.h / factor));
+        image brush_rotate = rotate_image(brush_resize, rand() % 360);
+
+        int x = rand() % base.w;
+        int y = rand() % base.h;
+
+        mix_image(base, ret, brush_rotate, x, y);
+        free_image(brush);
+        free_image(brush_resize);
+        free_image(brush_rotate);
+
+        if ((i + 1) % 1000 == 0) {
+            printf("Progress: %d / %d\n", i + 1, num);
+        }
+    }
+    return ret;
+}
+
+void mix_image(image base, image to, image brush, int bx, int by) {
+    int cx = bx + brush.w / 2;
+    int cy = by + brush.h / 2;
+
+    for (int c = 0; c < base.c; c++) {
+        for (int y = by; y < base.h + by; y++) {
+            for (int x = bx; x < base.w + bx; x++) {
+                if (x < bx || y < by || x > brush.w + bx || y > brush.h + by) {
+                    continue;
+                }
+                float opacity = get_pixel(brush, x - bx, y - by, 0);
+                set_pixel(to, x, y, c, get_pixel(to, x, y, c) * (1 - opacity) + get_pixel(base, cx, cy, c) * opacity);
+            }
+        }
+    }
+}
+
+image rotate_image(image origin, int angle) {
+  float wcos, wsin, hcos, hsin;
+  float arc = 1.0 * M_PI * angle / 180;
+  wcos = origin.w * cosf(arc);
+  wsin = origin.w * sinf(arc);
+  hcos = origin.h * cosf(arc);
+  hsin = origin.h * sinf(arc);
+  int width = (int) (fabsf(wcos) + fabsf(hsin));
+  int height = (int) (fabsf(hcos) + fabsf(wsin));
+  image ret = make_image(width, height, 1);
+  for (int i = 0; i < ret.w * ret.h; ++i) {
+      ret.data[i] = 0;
+  }
+  int i, j;
+  float rw, rh;
+  float xshift, yshift;
+    if (angle <= 90) {
+      xshift = abs(1.0 * origin.h * sinf(1.0 * M_PI * angle / 180));
+      yshift = 0.0;
+    } else if (angle <= 180) {
+      xshift = abs(origin.w * cosf(1.0 * M_PI * angle / 180)) + abs(origin.h * sinf(1.0 * M_PI * angle / 180));
+      yshift = abs(origin.h * cosf(1.0 * M_PI * angle / 180));
+    } else if (angle <= 270) {
+      xshift = abs(origin.w * cosf(1.0 * M_PI * angle / 180));
+      yshift = abs(origin.h * cosf(1.0 * M_PI * angle / 180)) + abs(origin.w * sinf(1.0 * M_PI * angle / 180));
+    } else {
+      xshift = 0.0;
+      yshift = abs(origin.w * sinf(1.0 * M_PI * angle / 180));
+    }
+  for (j = 0; j < origin.h; ++j) {
+   for (i = 0; i < origin.w; ++i) {
+    rw = i * cosf(arc) - j * sinf(arc);
+    rh = j * cosf(arc) + i * sinf(arc);
+    set_pixel(ret, rw + xshift, rh + yshift, 0, get_pixel(origin, i, j, 0));
+   }
+  }
+  float v1, v2, v3, v4, v6, v7, v8, v9, val;
+  for (j = 0; j < ret.h; ++j) {
+    for (i = 0; i < ret.w; ++i) {
+      val = get_pixel(ret, i, j, 0);
+      v1 = get_pixel(ret, i - 1, j - 1, 0);
+      v2 = get_pixel(ret, i, j - 1, 0);
+      v3 = get_pixel(ret, i + 1, j - 1, 0);
+      v4 = get_pixel(ret, i - 1, j, 0);
+      v6 = get_pixel(ret, i + 1, j, 0);
+      v7 = get_pixel(ret, i - 1, j + 1, 0);
+      v8 = get_pixel(ret, i, j + 1, 0);
+      v9 = get_pixel(ret, i + 1, j + 1, 0);
+      if (val == 0) {
+        val = (v1 + v2 + v3 + v4 + v6 + v7 + v8 + v9) / 8;
+        set_pixel(ret, i, j, 0, val);
+      }
+    }
+  }
+  return ret;
 }

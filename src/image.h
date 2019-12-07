@@ -60,7 +60,7 @@ image get_channel(image im, int c);
 int same_image(image a, image b);
 image sub_image(image a, image b);
 image add_image(image a, image b);
-image mix_image(image base, image brush);
+
 
 // Loading and saving
 image make_image(int w, int h, int c);
@@ -114,6 +114,14 @@ image panorama_image(image a, image b, float sigma, float thresh, int nms, float
 image optical_flow_images(image im, image prev, int smooth, int stride);
 void optical_flow_webcam(int smooth, int stride, int div);
 void draw_flow(image im, image v, float scale);
+
+
+
+image apply_brushes(image base);
+void mix_image(image base, image to, image brush, int bx, int by);
+image rotate_image(image brush, int angle);
+
+
 
 #ifdef OPENCV
 void *open_video_stream(const char *f, int c, int w, int h, int fps);

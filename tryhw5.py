@@ -1,6 +1,11 @@
 from uwimg import *
 
-im = load_image("data/dog.jpg")
-brush = load_image("brushes/b02.png")
-res = mix_image(im, brush)
-save_image(res, "mixmixmix")
+im = load_image("data/flower.jpg")
+res = apply_brushes(im)
+save_image(res, "flower")
+
+
+im = load_image("data/sunset_small.jpg")
+res = apply_brushes(im)
+save_image(res, "sunset")
+
