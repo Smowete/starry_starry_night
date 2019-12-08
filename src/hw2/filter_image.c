@@ -296,8 +296,8 @@ image apply_brushes(image base) {
         image brush_resize = bilinear_resize(brush, floor(1.0 * brush.w / factor), floor(1.0 * brush.h / factor));
         image brush_rotate = rotate_image(brush_resize, rand() % 360);
 
-        int x = rand() % base.w;
-        int y = rand() % base.h;
+        int x = rand() % (base.w + 50) - 50;
+        int y = rand() % (base.h + 50) - 50;
 
         mix_image(base, ret, brush_rotate, x, y);
         free_image(brush);
@@ -329,58 +329,63 @@ void mix_image(image base, image to, image brush, int bx, int by) {
 }
 
 image rotate_image(image origin, int angle) {
-  float wcos, wsin, hcos, hsin;
-  float arc = 1.0 * M_PI * angle / 180;
-  wcos = origin.w * cosf(arc);
-  wsin = origin.w * sinf(arc);
-  hcos = origin.h * cosf(arc);
-  hsin = origin.h * sinf(arc);
-  int width = (int) (fabsf(wcos) + fabsf(hsin));
-  int height = (int) (fabsf(hcos) + fabsf(wsin));
-  image ret = make_image(width, height, 1);
-  for (int i = 0; i < ret.w * ret.h; ++i) {
-      ret.data[i] = 0;
+ float wcos, wsin, hcos, hsin;
+ float arc = 1.0 * M_PI * angle / 180;
+ 
+ wcos = origin.w * cosf(arc);
+ wsin = origin.w * sinf(arc);
+ hcos = origin.h * cosf(arc);
+ hsin = origin.h * sinf(arc);
+ 
+ int width = (int) (fabsf(wcos) + fabsf(hsin));
+ int height = (int) (fabsf(hcos) + fabsf(wsin));
+ 
+ image ret = make_image(width, height, 1);
+ 
+ for (int i = 0; i < ret.w * ret.h; ++i) {
+    ret.data[i] = 0;
+ }
+
+ int i, j;
+ float rw, rh;
+ float xshift, yshift;
+ if (angle <= 90) {
+  xshift = fabsf(hsin);
+  yshift = 0.0;
+ } else if (angle <= 180) {
+  xshift = fabsf(wcos) + fabsf(hsin);
+  yshift = fabsf(hcos);
+ } else if (angle <= 270) {
+  xshift = fabsf(wcos);
+  yshift = fabsf(hcos) + fabsf(wsin);
+ } else {
+  xshift = 0.0;
+  yshift = fabsf(wsin);
+ }
+ for (j = 0; j < origin.h; ++j) {
+  for (i = 0; i < origin.w; ++i) {
+   rw = i * cosf(arc) - j * sinf(arc);
+   rh = j * cosf(arc) + i * sinf(arc);
+   set_pixel(ret, rw + xshift, rh + yshift, 0, get_pixel(origin, i, j, 0));
   }
-  int i, j;
-  float rw, rh;
-  float xshift, yshift;
-    if (angle <= 90) {
-      xshift = abs(1.0 * origin.h * sinf(1.0 * M_PI * angle / 180));
-      yshift = 0.0;
-    } else if (angle <= 180) {
-      xshift = abs(origin.w * cosf(1.0 * M_PI * angle / 180)) + abs(origin.h * sinf(1.0 * M_PI * angle / 180));
-      yshift = abs(origin.h * cosf(1.0 * M_PI * angle / 180));
-    } else if (angle <= 270) {
-      xshift = abs(origin.w * cosf(1.0 * M_PI * angle / 180));
-      yshift = abs(origin.h * cosf(1.0 * M_PI * angle / 180)) + abs(origin.w * sinf(1.0 * M_PI * angle / 180));
-    } else {
-      xshift = 0.0;
-      yshift = abs(origin.w * sinf(1.0 * M_PI * angle / 180));
-    }
-  for (j = 0; j < origin.h; ++j) {
-   for (i = 0; i < origin.w; ++i) {
-    rw = i * cosf(arc) - j * sinf(arc);
-    rh = j * cosf(arc) + i * sinf(arc);
-    set_pixel(ret, rw + xshift, rh + yshift, 0, get_pixel(origin, i, j, 0));
+ }
+ float v1, v2, v3, v4, v6, v7, v8, v9, val;
+ for (j = 0; j < ret.h; ++j) {
+  for (i = 0; i < ret.w; ++i) {
+   val = get_pixel(ret, i, j, 0);
+   v1 = get_pixel(ret, i - 1, j - 1, 0);
+   v2 = get_pixel(ret, i, j - 1, 0);
+   v3 = get_pixel(ret, i + 1, j - 1, 0);
+   v4 = get_pixel(ret, i - 1, j, 0);
+   v6 = get_pixel(ret, i + 1, j, 0);
+   v7 = get_pixel(ret, i - 1, j + 1, 0);
+   v8 = get_pixel(ret, i, j + 1, 0);
+   v9 = get_pixel(ret, i + 1, j + 1, 0);
+   if (val == 0) {
+    val = (v1 + v2 + v3 + v4 + v6 + v7 + v8 + v9) / 8;
+    set_pixel(ret, i, j, 0, val);
    }
   }
-  float v1, v2, v3, v4, v6, v7, v8, v9, val;
-  for (j = 0; j < ret.h; ++j) {
-    for (i = 0; i < ret.w; ++i) {
-      val = get_pixel(ret, i, j, 0);
-      v1 = get_pixel(ret, i - 1, j - 1, 0);
-      v2 = get_pixel(ret, i, j - 1, 0);
-      v3 = get_pixel(ret, i + 1, j - 1, 0);
-      v4 = get_pixel(ret, i - 1, j, 0);
-      v6 = get_pixel(ret, i + 1, j, 0);
-      v7 = get_pixel(ret, i - 1, j + 1, 0);
-      v8 = get_pixel(ret, i, j + 1, 0);
-      v9 = get_pixel(ret, i + 1, j + 1, 0);
-      if (val == 0) {
-        val = (v1 + v2 + v3 + v4 + v6 + v7 + v8 + v9) / 8;
-        set_pixel(ret, i, j, 0, val);
-      }
-    }
-  }
-  return ret;
+ }
+ return ret;
 }
