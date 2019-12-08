@@ -232,7 +232,7 @@ optical_flow_webcam.restype = None
 
 
 apply_brushes = lib.apply_brushes
-apply_brushes.argtypes = [IMAGE]
+apply_brushes.argtypes = [IMAGE, c_int]
 apply_brushes.restype = IMAGE
 
 
@@ -244,6 +244,13 @@ rotate_image = lib.rotate_image
 rotate_image.argtypes = [IMAGE, c_int]
 rotate_image.restype = IMAGE
 
+mean_cluster = lib.mean_cluster
+mean_cluster.argtypes = [IMAGE]
+mean_cluster.restype = c_int
+
+demo_alpha = lib.demo_alpha
+demo_alpha.argtypes = [c_int]
+demo_alpha.restype = IMAGE
 
 
 

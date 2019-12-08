@@ -270,14 +270,17 @@ image colorize_sobel(image im) {
 
 
 
-image apply_brushes(image base) {
-    int num = 10000;
+image apply_brushes(image base, int resize_index) {
     int max_brushes = 8;
     srand(time(NULL));
-    float factor = 1.0 * 4000 / base.w;
-    if (base.h > base.w) {
-        factor = 1.0 * 4000 / base.h;
+    float factor = 1.0 * 1000 / resize_index;
+    if (factor < 4.0) {
+        factor = 4.0;
     }
+    if (factor > 10.0) {
+        factor = 10.0;
+    }
+    int num = floor(4000 * factor);
     printf("Brush Resize Factor: %f\n", factor);
 
     image temp = make_image(base.w, base.h, base.c);
@@ -388,4 +391,59 @@ image rotate_image(image origin, int angle) {
   }
  }
  return ret;
+}
+
+
+int mean_cluster(image kmean) {
+    int count = 0;
+    for (int y = 0; y < kmean.h; y++) {
+        for (int x = 0; x < kmean.w; x++) {
+            if (get_pixel(kmean, x, y, 0) >= 0.0) {
+                count++;
+                helper(kmean, x, y, get_pixel(kmean, x, y, 0));
+            }
+        }
+    }
+    return kmean.w * kmean.h / count;
+}
+
+void helper(image kmean, int x, int y, float val) {
+    if (x < 0 || y < 0 || x >= kmean.w || y >= kmean.h) {
+        return;
+    }
+    if (get_pixel(kmean, x, y, 0) - val > 0.05 || get_pixel(kmean, x, y, 0) - val < -0.05) {
+        return;
+    }
+    set_pixel(kmean, x, y, 0, -1.0);
+    helper(kmean, x+1, y, val);
+    helper(kmean, x-1, y, val);
+    helper(kmean, x, y+1, val);
+    helper(kmean, x, y-1, val);
+}
+
+
+image demo_alpha(int a) {
+    image ret = make_image(200, 200, 3);
+    image red = make_image(200, 200, 3);
+    image yellow = make_image(200, 200, 3);
+    image blue = make_image(200, 200, 3);
+    for (int y = 0; y < red.h; y++) {
+        for (int x = 0; x < red.w; x++) {
+            set_pixel(ret, x, y, 0, .898);
+            set_pixel(ret, x, y, 1, .898);
+            set_pixel(ret, x, y, 2, .898);
+            set_pixel(red, x, y, 0, 1);
+            set_pixel(yellow, x, y, 0, 1);
+            set_pixel(yellow, x, y, 1, 1);
+            set_pixel(blue, x, y, 2, 1);
+        }
+    }
+
+    image brush = load_image("brushes/1.png");
+    image brush_rotate = rotate_image(brush, 270);
+    mix_image(red, ret, brush, 60, 0);
+    mix_image(blue, ret, brush_rotate, 0, 60);
+
+    return ret;
+
 }

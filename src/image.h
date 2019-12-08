@@ -117,9 +117,12 @@ void draw_flow(image im, image v, float scale);
 
 
 
-image apply_brushes(image base);
+image apply_brushes(image base, int resize_index);
 void mix_image(image base, image to, image brush, int bx, int by);
 image rotate_image(image brush, int angle);
+int mean_cluster(image kmean);
+void helper(image kmean, int x, int y, float val);
+image demo_alpha(int a);
 
 
 
