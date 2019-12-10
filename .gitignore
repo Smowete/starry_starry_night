@@ -6,8 +6,9 @@
 .fuse*
 libuwimg*
 uwimg
-*.png
-*.jpg
+data/*
+output/*
+kmeans/*
 
 # OS Generated #
 .DS_Store*
@@ -16,8 +17,8 @@ Icon?
 Thumbs.db
 *.swp
 
-mnist*
-cifar*
 
 .vscode/
+
+
 
